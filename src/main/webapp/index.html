@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Inventory Management</title>
+</head>
+<body>
+
+    <header>
+        <h1> Live Warehouse Catalog</h1>
+        <p style="color: #6b7280; margin: 5px 0 20px 0;">Real-time inventory lookup mapping custom product nodes</p>
+        <button class="btn-refresh" onclick="loadCatalog()"> Refresh Catalog Data</button>
+    </header>
+
+    <!-- The Javascript target element to append items dynamically -->
+    <div class="catalog-container" id="catalogView">
+        <p class="status-msg">Loading inventory map nodes...</p>
+    </div>
+
+    <script>
+        function loadCatalog() {
+            const container = document.getElementById("catalogView");
+            container.innerHTML = '<p class="status-msg">Fetching database stock mappings...</p>';
+            fetch('resources/inventory')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP target error Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    container.innerHTML = ""; // Clear initial status message
+                    
+                    if (data.length === 0) {
+                        container.innerHTML = '<p class="status-msg">The active map catalog registry is currently empty.</p>';
+                        return;
+                    }
+
+                    // Loop through flat list items converted from the EJB Map keys/values
+                    data.forEach(item => {
+                        const card = document.createElement("div");
+                        card.className = "card";
+                        
+                        // Determine visual text styling rules based on inventory numbers
+                        let stockClass = "in-stock";
+                        let orderSelect = `<label for="quantitySelect-${item.itemNumber}">Quantity:</label>
+                                        <select id="quantitySelect-${item.itemNumber}" name="quantity">
+                                            <option value="1" selected>1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5 Max</option>
+                                        </select>
+                                         `                       
+                        let buttonHtml = `<button onclick="reserveItem(${item.itemNumber})" style="margin-top:10px; padding:6px 12px; cursor:pointer; background:#16a34a; color:white; border:none; border-radius:4px; font-weight:600;"> make order</button>`;
+                       
+                        if (item.quantity === 0) {
+                            buttonHtml = `<button disabled style="margin-top:10px; padding:6px 12px; background:#d1d5db; color:#9ca3af; border:none; border-radius:4px; cursor:not-allowed;">Sold Out</button>`;
+                        }
+                        if (item.quantity === 0) {
+                            stockClass = "out-of-stock";
+                        } else if (item.quantity < 10) {
+                            stockClass = "low-stock";
+                        }
+
+                        // Generate the structural inner layout string matching your exact parameters
+                        card.innerHTML = `
+                             <h3>${item.name}</h3>
+                                <div class="item-number">Item ID: #${item.itemNumber}</div>
+                                <div class="stock-label">
+                                    Available Stock: 
+                                    <span class="stock-count ${stockClass}">${item.quantity} units</span>
+                                </div>
+                                ${orderSelect}
+                                ${buttonHtml}
+                        `;
+                        container.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    container.innerHTML = `
+                        <p class="status-msg" style="color: #dc2626; font-weight: 600;">
+                            ⚠️ Connectivity Error: Unable to fetch data from Jakarta endpoint.<br>
+                            <span style="font-weight: normal; font-size: 0.9em; color: #999;">(${error.message})</span>
+                        </p>
+                    `;
+                    console.error("Catalog API Fetch Fail: ", error);
+                });
+        }
+        function reserveItem(id) {
+               let SelectElement = document.getElementById(`quantitySelect-${id}`);
+               let quantitySelected = SelectElement.value;
+
+            fetch(`resources/inventory/reserve?id=${id}&qty=${quantitySelected}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadCatalog(); 
+                })
+                .catch(error => {
+                    alert("Error trying to process inventory reservations.");
+                    console.error(error);
+                });
+        }
+
+        // Trigger request immediately upon window view creation
+        window.onload = loadCatalog;
+    </script>
+</body>
+</html>

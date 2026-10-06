@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Inventory Management</title>
+    <style>
+        /* Modern Layout Styling */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 40px; 
+            background-color: #f3f4f6; 
+            color: #333;
+        }
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 20px;
+        }
+        h1 { margin: 0; color: #1f2937; }
+        
+        /* Action Buttons */
+        .btn-refresh {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .btn-refresh:hover { background-color: #1d4ed8; }
+
+        /* Catalog Grid System */
+        .catalog-container { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
+            gap: 20px; 
+            margin-top: 30px; 
+        }
+        .card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 24px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); 
+            border: 1px solid #e5e7eb;
+            transition: transform 0.15s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+        }
+        .card h3 { 
+            margin: 0 0 8px 0; 
+            color: #111827; 
+            font-size: 1.25em;
+        }
+        .item-number {
+            display: inline-block;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .stock-label { 
+            font-size: 0.95em; 
+            color: #4b5563; 
+        }
+        .stock-count {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .in-stock { color: #16a34a; }
+        .low-stock { color: #ca8a04; }
+        .out-of-stock { color: #dc2626; }
+        
+        /* Information / Error Feedback states */
+        .status-msg {
+            font-style: italic;
+            color: #6b7280;
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📦 Live Warehouse Catalog</h1>
+        <p style="color: #6b7280; margin: 5px 0 20px 0;">Real-time inventory lookup mapping custom product nodes</p>
+        <button class="btn-refresh" onclick="loadCatalog()">🔄 Refresh Catalog Data</button>
+    </header>
+
+    <!-- The Javascript target element to append items dynamically -->
+    <div class="catalog-container" id="catalogView">
+        <p class="status-msg">Loading inventory map nodes...</p>
+    </div>
+
+    <script>
+        function loadCatalog() {
+            const container = document.getElementById("catalogView");
+            container.innerHTML = '<p class="status-msg">Fetching database stock mappings...</p>';
+
+            // URL path structures relative to: http://localhost:8080/YOUR-CONTEXT-ROOT/api/catalog
+            fetch('api/catalog')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP target error Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    container.innerHTML = ""; // Clear initial status message
+                    
+                    if (data.length === 0) {
+                        container.innerHTML = '<p class="status-msg">The active map catalog registry is currently empty.</p>';
+                        return;
+                    }
+
+                    // Loop through flat list items converted from the EJB Map keys/values
+                    data.forEach(item => {
+                        const card = document.createElement("div");
+                        card.className = "card";
+                        
+                        // Determine visual text styling rules based on inventory numbers
+                        let stockClass = "in-stock";
+                        if (item.quantity === 0) {
+                            stockClass = "out-of-stock";
+                        } else if (item.quantity < 10) {
+                            stockClass = "low-stock";
+                        }
+
+                        // Generate the structural inner layout string matching your exact parameters
+                        card.innerHTML = `
+                            <h3>${item.name}</h3>
+                            <div class="item-number">Item ID: #${item.itemNumber}</div>
+                            <div class="stock-label">
+                                Available Stock: 
+                                <span class="stock-count ${stockClass}">${item.quantity} units</span>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    container.innerHTML = `
+                        <p class="status-msg" style="color: #dc2626; font-weight: 600;">
+                            ⚠️ Connectivity Error: Unable to fetch data from Jakarta endpoint.<br>
+                            <span style="font-weight: normal; font-size: 0.9em; color: #999;">(${error.message})</span>
+                        </p>
+                    `;
+                    console.error("Catalog API Fetch Fail: ", error);
+                });
+        }
+
+        // Trigger request immediately upon window view creation
+        window.onload = loadCatalog;
+    </script>
+</body>
+</html>

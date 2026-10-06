@@ -1,0 +1,7 @@
+com/mycompany/inventory/InventoryService.class
+com/mycompany/inventory/resources/InventoryResource$FlatItem.class
+com/mycompany/inventory/resources/InventoryResource.class
+com/mycompany/inventory/resources/JakartaEE11Resource.class
+com/mycompany/inventory/InventoryServiceLocal.class
+com/mycompany/inventory/Product.class
+com/mycompany/inventory/JakartaRestConfiguration.class
